@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Usage Tracker</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #F8FAFD;
+            color: #1C1C1C;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #62C8B9;
+            padding: 15px 20px;
+            width: 100%;
+            font-size: 24px;
+            color: #1C1C1C;
+            font-weight: bold;
+        }
+
+        header img {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #FFFAF0;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px 20px;
+            margin: 20px auto;
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #000000;
+            font-size: 20px;
+            font-weight: 300;
+            margin-bottom: 20px;
+            margin-top: -20px;
+            padding-bottom: 50px;
+        }
+
+        .file-input {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        .file-input label {
+            padding: 10px 15px;
+            background-color: #62C8B9;
+            color: #FFFFFF;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            width: 200px;
+            text-align: center;
+        }
+
+        .file-input label:hover {
+            background-color: #346EEE;
+        }
+
+        .file-input input {
+            display: none;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #555;
+            text-align: right;
+            flex: 1;
+            margin-left: auto;
+        }
+
+        .btn {
+            margin-top: 20px;
+            padding: 12px 25px;
+            background-color: #346EEE;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #62C8B9;
+        }
+
+        #processing-status {
+            margin-top: 20px;
+            color: #62C8B9;
+            font-weight: bold;
+        }
+
+        .output-links {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .download-btn {
+            padding: 10px 20px;
+            background-color: #346EEE;
+            color: #FFFFFF;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background-color: #62C8B9;
+        }
+
+        footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #62C8B9;
+            color: #1C1C1C;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 10px 0;
+            height: 40px;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <img src="settlemint_logo.png" alt="SettleMint Logo">
+        Platform Usage Tracker
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h2>Upload files for processing</h2>
+        <div class="file-input">
+            <label for="price-file">Upload Price File</label>
+            <input type="file" id="price-file" accept=".xlsx">
+            <span id="price-file-name" class="file-name">No file chosen</span>
+        </div>
+        <div class="file-input">
+            <label for="usage-files">Upload Usage Files</label>
+            <input type="file" id="usage-files" multiple accept=".xlsx">
+            <span id="usage-file-name" class="file-name">No files chosen</span>
+        </div>
+        <button class="btn" onclick="uploadFiles()">Upload and Generate Results</button>
+
+        <div id="processing-status" style="display: none; margin: 20px 0; color: #62C8B9; font-weight: bold;">
+            Processing... Please wait.
+        </div>
+
+        <div id="output-links" class="output-links" style="display: none;">
+            <a id="summary-link" class="download-btn" href="#" download>Download Summary Output</a>
+            <a id="detailed-link" class="download-btn" href="#" download>Download Detailed Output</a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        © 2025 SettleMint | All rights reserved
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        const backendBaseURL = "http://127.0.0.1:5002";
+
+        document.getElementById('price-file').addEventListener('change', function () {
+            document.getElementById('price-file-name').innerText = this.files[0]?.name || "No file chosen";
+        });
+
+        document.getElementById('usage-files').addEventListener('change', function () {
+            const fileCount = this.files.length;
+            document.getElementById('usage-file-name').innerText = fileCount > 0 ? `${fileCount} files selected` : "No files chosen";
+        });
+
+        async function uploadFiles() {
+            const priceFile = document.getElementById('price-file').files[0];
+            const usageFiles = document.getElementById('usage-files').files;
+
+            if (!priceFile || usageFiles.length === 0) {
+                alert("Please upload both Price.xlsx and usage files.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('files', priceFile);
+            for (const file of usageFiles) {
+                formData.append('files', file);
+            }
+
+            document.getElementById('processing-status').style.display = 'block';
+            document.getElementById('output-links').style.display = 'none';
+
+            try {
+                const uploadResponse = await fetch(`${backendBaseURL}/upload`, { method: 'POST', body: formData });
+                if (!uploadResponse.ok) throw new Error("File upload failed!");
+
+                const processResponse = await fetch(`${backendBaseURL}/process`, { method: 'POST' });
+                const result = await processResponse.json();
+
+                if (result.summary_output && result.detailed_output) {
+                    document.getElementById('summary-link').href = `${backendBaseURL}${result.summary_output}`;
+                    document.getElementById('detailed-link').href = `${backendBaseURL}${result.detailed_output}`;
+                    document.getElementById('output-links').style.display = 'block';
+                } else {
+                    alert(`Error: ${result.error || "Unknown error during processing"}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            } finally {
+                document.getElementById('processing-status').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
